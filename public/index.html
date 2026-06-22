@@ -138,7 +138,6 @@ pre.code-preview{background:#111423;border:1.5px solid var(--border);border-radi
   <div class="lock-box">
     <div class="lock-icon">🔐</div>
     <h2>비밀번호를 입력하세요</h2>
-    <p>초기 비밀번호: 1234</p>
     <input type="password" id="pwInput" placeholder="비밀번호" maxlength="20">
     <div class="lock-error" id="lockError"></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="checkPassword()">입장</button>
@@ -486,6 +485,12 @@ function subscribeMemos(){
 document.getElementById('memoTitle').addEventListener('input',onMemoChange);
 document.getElementById('memoBody' ).addEventListener('input',onMemoChange);
 
+/* ── INIT ── */
+function initApp(){
+  subscribeItems();
+  subscribeMemos();
+}
+
 /* ══════════════════════════════
    LOGIN SYSTEM
 ══════════════════════════════ */
@@ -501,46 +506,43 @@ function checkPassword(){
   
   if(pw === correctPw){
     localStorage.setItem('app_locked','false');
-    unlockScreen();
-    toast('입장했습니다 ✓');
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('pwInput').value = '';
+    initApp();
   } else {
     errorEl.textContent = '❌ 비밀번호가 틀렸습니다.';
-    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
   }
 }
 
 function removeLock(){
   if(confirm('비밀번호 보호를 해제하시겠습니까?')){
     localStorage.setItem('app_locked','false');
-    unlockScreen();
-    toast('보호가 해제되었습니다.');
+    document.getElementById('lockScreen').style.display = 'none';
+    initApp();
   }
-}
-
-function unlockScreen(){
-  document.getElementById('lockScreen').style.display='none';
-  initApp();
 }
 
 function checkLockStatus(){
   if(localStorage.getItem('app_locked') === 'false'){
-    unlockScreen();
+    document.getElementById('lockScreen').style.display = 'none';
+    initApp();
   }
 }
 
 // 엔터 키로 로그인
-document.getElementById('pwInput')?.addEventListener('keydown',e=>{
-  if(e.key==='Enter') checkPassword();
+document.addEventListener('DOMContentLoaded', () => {
+  const pwInput = document.getElementById('pwInput');
+  if(pwInput) {
+    pwInput.addEventListener('keydown', e => {
+      if(e.key === 'Enter') checkPassword();
+    });
+  }
 });
 
-/* ── INIT ── */
-function initApp(){
-  subscribeItems();
-  subscribeMemos();
-}
-
 // 페이지 로드 시 로그인 상태 확인
-window.addEventListener('load',checkLockStatus);
+window.addEventListener('load', checkLockStatus);
 </script>
 </body>
 </html>
