@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>단축키 빌더 + 메모장</title>
+<style>
+:root {
+  --bg:#181b2e; --surface:#20233a; --card:#252943; --border:#2e3254;
+  --text:#dde1f5; --muted:#7880a8; --accent:#7c6af7; --accent-s:#5548c8;
+  --accent-g:rgba(124,106,247,.15); --ok:#5cc8b0; --warn:#f5a86a; --del:#f07070;
+  --radius:14px; --radius-s:9px; --mono:'Cascadia Code','Consolas',monospace;
+  --sans:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+  --shadow:0 4px 24px rgba(0,0,0,.35); --tr:.2s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;}
+::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+
+/* LOCK SCREEN */
+.lock-screen{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;z-index:999;
+}
+.lock-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:36px 32px;width:340px;
+  box-shadow:var(--shadow);text-align:center;
+}
+.lock-box .lock-icon{font-size:40px;margin-bottom:12px;}
+.lock-box h2{margin:0 0 6px;font-size:18px;}
+.lock-box p{color:var(--muted);font-size:12px;margin:0 0 22px;}
+.lock-box input{
+  width:100%;background:var(--bg);border:1.5px solid var(--border);
+  border-radius:var(--radius-s);color:var(--text);font-family:var(--sans);
+  font-size:15px;padding:11px 14px;outline:none;text-align:center;
+  letter-spacing:4px;margin-bottom:12px;
+  transition:border-color var(--tr),box-shadow var(--tr);
+}
+.lock-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-g);}
+.lock-error{color:var(--del);font-size:12px;margin-bottom:10px;min-height:16px;}
+
+/* APP */
+.app{max-width:1060px;margin:0 auto;padding:28px 18px 60px;}
+.header{display:flex;align-items:center;gap:14px;margin-bottom:26px;}
+.logo{width:40px;height:40px;background:var(--accent);border-radius:12px;display:grid;place-items:center;font-size:20px;flex-shrink:0;box-shadow:0 0 20px rgba(124,106,247,.4);}
+.header h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.3px;}
+.header p{margin:2px 0 0;color:var(--muted);font-size:12px;}
+.header-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+
+/* TABS */
+.tab-bar{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:5px;margin-bottom:20px;width:fit-content;}
+.tab-btn{padding:9px 22px;border:none;border-radius:var(--radius-s);background:transparent;color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:var(--tr);}
+.tab-btn:hover{color:var(--text);background:var(--accent-g);}
+.tab-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(124,106,247,.4);}
+
+/* PANEL */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:0 0 12px;}
+
+/* INPUTS */
+input[type=text],textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-s);color:var(--text);font-family:var(--sans);font-size:13px;padding:10px 12px;outline:none;transition:border-color var(--tr),box-shadow var(--tr);}
+input[type=text]:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-g);}
+textarea{resize:vertical;min-height:120px;line-height:1.6;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:var(--card);color:var(--text);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:var(--tr);white-space:nowrap;}
+.btn:hover{border-color:var(--accent);background:var(--accent-g);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+.btn-primary:hover{background:var(--accent-s);border-color:var(--accent-s);}
+.btn-ok{background:var(--ok);border-color:var(--ok);color:#0d1f1a;font-weight:700;}
+.btn-ok:hover{filter:brightness(1.1);}
+.btn-danger{color:var(--del);}
+.btn-danger:hover{border-color:var(--del);background:rgba(240,112,112,.1);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+/* BUILDER */
+.builder-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:780px){.builder-grid{grid-template-columns:1fr;}}
+.add-row{display:flex;gap:8px;margin-bottom:10px;}
+.add-row input.iname{flex:.9;} .add-row input.iurl{flex:1.4;}
+.item-list{list-style:none;margin:14px 0 0;padding:0;max-height:300px;overflow-y:auto;}
+.item-list li{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--radius-s);margin-bottom:4px;background:var(--card);border:1px solid var(--border);transition:border-color var(--tr);}
+.item-list li:hover{border-color:var(--accent);}
+.item-info .name{font-weight:600;font-size:13px;} .item-info .url{font-size:11px;color:var(--muted);margin-top:2px;word-break:break-all;}
+.empty-msg{text-align:center;color:var(--muted);font-size:12px;padding:24px;}
+.preview-label{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.dots span{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.dots .r{background:#f97575;} .dots .y{background:#f9c75a;} .dots .g{background:#5cf990;}
+pre.code-preview{background:#111423;border:1.5px solid var(--border);border-radius:var(--radius-s);padding:16px;font-family:var(--mono);font-size:12px;line-height:1.65;color:#a5b4fc;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0;}
+.builder-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.builder-note{color:var(--muted);font-size:11.5px;line-height:1.6;margin-top:12px;}
+.badge{display:inline-flex;align-items:center;background:var(--accent-g);border:1px solid var(--accent);color:var(--accent);border-radius:99px;font-size:10px;font-weight:700;padding:1px 8px;margin-left:6px;}
+
+/* MEMO */
+.memo-layout{display:grid;grid-template-columns:220px 1fr;gap:16px;min-height:540px;}
+@media(max-width:680px){.memo-layout{grid-template-columns:1fr;}}
+.memo-sidebar{display:flex;flex-direction:column;gap:10px;}
+.memo-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:5px;max-height:460px;}
+.memo-item{padding:10px 12px;border-radius:var(--radius-s);background:var(--card);border:1.5px solid var(--border);cursor:pointer;transition:var(--tr);}
+.memo-item:hover{border-color:var(--accent);}
+.memo-item.selected{border-color:var(--accent);background:var(--accent-g);}
+.memo-item .m-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+.memo-item .m-preview{font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+.memo-item .m-date{font-size:10px;color:var(--muted);margin-top:4px;}
+.memo-editor{display:flex;flex-direction:column;gap:10px;}
+.memo-title-input{font-size:16px!important;font-weight:600!important;}
+.memo-body{flex:1;min-height:380px;font-size:14px!important;line-height:1.7!important;}
+.memo-editor-actions{display:flex;justify-content:space-between;align-items:center;}
+.memo-status{font-size:11px;color:var(--ok);}
+.memo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);gap:8px;font-size:13px;}
+.memo-empty .big{font-size:38px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity var(--tr);}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:320px;box-shadow:var(--shadow);}
+.modal h3{margin:0 0 16px;font-size:15px;}
+.modal input{margin-bottom:10px;}
+.modal-actions{display:flex;gap:8px;margin-top:14px;}
+.modal-actions .btn{flex:1;justify-content:center;}
+.modal-error{color:var(--del);font-size:12px;margin-bottom:8px;min-height:16px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--surface);border:1.5px solid var(--accent);color:var(--text);padding:11px 18px;border-radius:var(--radius-s);font-size:13px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;pointer-events:none;z-index:100;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* SYNC STATUS */
+.sync{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+.sync.ok{color:var(--ok);}
+.sync.err{color:var(--del);}
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-icon">🔐</div>
+    <h2>비밀번호를 입력하세요</h2>
+    <p>초기 비밀번호: 1234</p>
+    <input type="password" id="pwInput" placeholder="비밀번호" maxlength="20">
+    <div class="lock-error" id="lockError"></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="checkPassword()">입장</button>
+    <div style="margin-top:14px;display:flex;gap:6px;font-size:11px;">
+      <button class="btn btn-sm" onclick="removeLock()" style="flex:1;justify-content:center;">🔓 비밀번호 해제</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="changePwModal">
+  <div class="modal">
+    <h3>🔑 비밀번호 변경</h3>
+    <div class="section-label">현재 비밀번호</div>
+    <input type="password" id="oldPw" placeholder="현재 비밀번호">
+    <div class="section-label">새 비밀번호</div>
+    <input type="password" id="newPw" placeholder="새 비밀번호">
+    <div class="section-label">새 비밀번호 확인</div>
+    <input type="password" id="newPw2" placeholder="새 비밀번호 확인">
+    <div class="modal-error" id="pwModalError"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="changePassword()">변경</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appMain" style="display:none">
+  <div class="header">
+    <div class="logo">🔗</div>
+    <div>
+      <h1>단축키 빌더 <span style="color:var(--muted);font-weight:400">&amp;</span> 메모장</h1>
+      <p>바탕화면 바로가기 스크립트 생성 · 자유 메모장 · Firebase 동기화</p>
+    </div>
+    <div class="header-right">
+      <span class="sync" id="syncStatus">⏳ 연결 중...</span>
+      <button class="btn btn-sm" onclick="openModal()">🔑 비번 변경</button>
+      <button class="btn btn-sm" onclick="logout()">나가기</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('script',this)">🔗 스크립트 빌더</button>
+    <button class="tab-btn"       onclick="switchTab('memo',this)">📝 메모장</button>
+  </div>
+
+  <!-- SCRIPT BUILDER -->
+  <div id="tab-script">
+    <div class="builder-grid">
+      <div class="panel">
+        <div class="section-label">바로가기 추가</div>
+        <div class="add-row">
+          <input type="text" class="iname" id="nameInput" placeholder="이름 (예: 챗지피티)">
+          <input type="text" class="iurl"  id="urlInput"  placeholder="https://...">
+          <button class="btn btn-primary" onclick="addItem()">+</button>
+        </div>
+        <div class="section-label" style="margin-top:18px;">목록 <span class="badge" id="countBadge">0</span></div>
+        <ul class="item-list" id="itemList"><div class="empty-msg">아직 항목이 없어요 :)</div></ul>
+      </div>
+      <div class="panel">
+        <div class="preview-label">
+          <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <div class="section-label" style="margin:0">스크립트 미리보기</div>
+        </div>
+        <pre class="code-preview" id="preview">@echo off
+:: 항목을 추가하면 여기에 스크립트가 표시됩니다.</pre>
+        <div class="builder-actions">
+          <button class="btn btn-ok" style="flex:1" onclick="downloadBat()">⬇ make_shortcuts.bat 다운로드</button>
+          <button class="btn" onclick="copyScript()">복사</button>
+        </div>
+        <p class="builder-note">다운받은 .bat 파일을 새 PC 바탕화면에 두고 <strong>더블클릭</strong>하면 바로가기가 전부 생성됩니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMO -->
+  <div id="tab-memo" class="panel" style="display:none">
+    <div class="memo-layout">
+      <div class="memo-sidebar">
+        <button class="btn btn-primary" style="width:100%" onclick="newMemo()">+ 새 메모</button>
+        <div class="memo-list" id="memoList"></div>
+      </div>
+      <div class="memo-editor" id="memoEditor" style="display:none">
+        <input type="text" class="memo-title-input" id="memoTitle" placeholder="제목">
+        <textarea class="memo-body" id="memoBody" placeholder="내용을 입력하세요..."></textarea>
+        <div class="memo-editor-actions">
+          <div class="memo-status" id="memoStatus"></div>
+          <button class="btn btn-danger" onclick="deleteMemo()">🗑 삭제</button>
+        </div>
+      </div>
+      <div class="memo-empty" id="memoEmpty">
+        <div class="big">📝</div>
+        <div>메모를 선택하거나 새로 만들어보세요</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAvRm_Oa1uFuUox4qFkknDPZ02bb2JIhyc",
+  authDomain: "backup-a621f.firebaseapp.com",
+  databaseURL: "https://backup-a621f-default-rtdb.firebaseio.com",
+  projectId: "backup-a621f",
+  storageBucket: "backup-a621f.firebasestorage.app",
+  messagingSenderId: "743388895375",
+  appId: "1:743388895375:web:26190def8ef2c14b6ff8fa"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+/* ── UTILS ── */
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>el.classList.remove('show'),2200);
+}
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function fmtDate(ts){ if(!ts) return ''; const d=ts.toDate?ts.toDate():new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function setSyncStatus(state,msg){
+  const el=document.getElementById('syncStatus');
+  el.className='sync'+(state?' '+state:'');
+  el.textContent=msg;
+}
+
+/* ── PASSWORD ── */
+let currentPassword = '1234';
+
+async function loadPassword(){
+  try{
+    const snap = await getDoc(doc(db,'config','password'));
+    if(snap.exists()) currentPassword = snap.data().value;
+  }catch(e){ console.error(e); }
+}
+
+window.checkPassword = async function(){
+  await loadPassword();
+  const val = document.getElementById('pwInput').value;
+  if(val === currentPassword){
+    document.getElementById('lockScreen').style.display='none';
+    document.getElementById('appMain').style.display='block';
+    initApp();
+  } else {
+    document.getElementById('lockError').textContent='비밀번호가 틀렸습니다.';
+    document.getElementById('pwInput').value='';
+  }
+};
+
+window.logout = function(){
+  document.getElementById('appMain').style.display='none';
+  document.getElementById('lockScreen').style.display='flex';
+  document.getElementById('pwInput').value='';
+  document.getElementById('lockError').textContent='';
+};
+
+window.openModal  = ()=>document.getElementById('changePwModal').classList.add('show');
+window.closeModal = ()=>{ document.getElementById('changePwModal').classList.remove('show'); document.getElementById('pwModalError').textContent=''; };
+
+window.changePassword = async function(){
+  const old  = document.getElementById('oldPw').value;
+  const nw   = document.getElementById('newPw').value;
+  const nw2  = document.getElementById('newPw2').value;
+  const errEl= document.getElementById('pwModalError');
+  if(old !== currentPassword){ errEl.textContent='현재 비밀번호가 틀렸습니다.'; return; }
+  if(!nw){ errEl.textContent='새 비밀번호를 입력해주세요.'; return; }
+  if(nw !== nw2){ errEl.textContent='새 비밀번호가 일치하지 않습니다.'; return; }
+  try{
+    await setDoc(doc(db,'config','password'),{value:nw});
+    currentPassword = nw;
+    toast('비밀번호가 변경되었습니다 ✓');
+    closeModal();
+    ['oldPw','newPw','newPw2'].forEach(id=>document.getElementById(id).value='');
+  }catch(e){ errEl.textContent='저장 실패: '+e.message; }
+};
+
+document.getElementById('pwInput').addEventListener('keydown',e=>{ if(e.key==='Enter') window.checkPassword(); });
+
+/* ── TAB ── */
+window.switchTab = function(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-script').style.display = name==='script'?'block':'none';
+  document.getElementById('tab-memo'  ).style.display = name==='memo'  ?'block':'none';
+};
+
+/* ══════════════════════════════
+   SCRIPT BUILDER
+══════════════════════════════ */
+let items = [];
+let unsubItems = null;
+
+function escapeBat(s){ return s.replace(/&/g,'^&').replace(/%/g,'%%'); }
+function safeFileName(s){ return s.replace(/[\\/:*?"<>|]/g,'_'); }
+
+function buildScript(){
+  if(!items.length) return '@echo off\n:: 항목을 추가하면 여기에 스크립트가 표시됩니다.';
+  return ['@echo off','chcp 65001 >nul','set DESK=%USERPROFILE%\\Desktop','echo 바탕화면 바로가기를 생성하는 중...','',
+    ...items.flatMap(it=>[`(`,`  echo [InternetShortcut]`,`  echo URL=${it.url}`,`) > "%DESK%\\${safeFileName(it.name)}.url"`,`echo  ✓ ${escapeBat(it.name)}`,'']),
+    'echo.','echo 완료! 아무 키나 누르면 창이 닫힙니다.','pause >nul'].join('\n');
+}
+
+function renderItems(){
+  document.getElementById('countBadge').textContent=items.length;
+  const ul=document.getElementById('itemList');
+  ul.innerHTML = items.length
+    ? items.map((it,i)=>`<li><div class="item-info"><div class="name">${escHtml(it.name)}</div><div class="url">${escHtml(it.url)}</div></div><button class="btn btn-danger" style="padding:6px 10px;font-size:15px" data-id="${it._id}">✕</button></li>`).join('')
+    : '<div class="empty-msg">아직 항목이 없어요 :)</div>';
+  ul.querySelectorAll('[data-id]').forEach(btn=>{
+    btn.addEventListener('click',()=>removeItem(btn.dataset.id));
+  });
+  document.getElementById('preview').textContent=buildScript();
+}
+
+function subscribeItems(){
+  if(unsubItems) unsubItems();
+  unsubItems = onSnapshot(collection(db,'shortcuts'), snap=>{
+    items = snap.docs.map(d=>({_id:d.id,...d.data()}));
+    items.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    renderItems();
+    setSyncStatus('ok','🟢 Firebase 연결됨');
+  }, err=>{ setSyncStatus('err','🔴 연결 오류'); console.error(err); });
+}
+
+window.addItem = async function(){
+  let name=document.getElementById('nameInput').value.trim();
+  let url =document.getElementById('urlInput').value.trim();
+  if(!name||!url){ toast('이름과 URL을 모두 입력해주세요.'); return; }
+  if(!/^https?:\/\//i.test(url)) url='https://'+url;
+  try{
+    await addDoc(collection(db,'shortcuts'),{name,url,createdAt:serverTimestamp()});
+    document.getElementById('nameInput').value='';
+    document.getElementById('urlInput').value='';
+    document.getElementById('nameInput').focus();
+    toast('추가되었습니다 ✓');
+  }catch(e){ toast('저장 실패: '+e.message); }
+};
+
+async function removeItem(id){
+  try{ await deleteDoc(doc(db,'shortcuts',id)); }
+  catch(e){ toast('삭제 실패: '+e.message); }
+}
+
+window.downloadBat=function(){
+  if(!items.length){ toast('항목을 먼저 추가해주세요.'); return; }
+  const blob=new Blob(['\uFEFF'+buildScript()],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='make_shortcuts.bat';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('다운로드 완료!');
+};
+window.copyScript=function(){ navigator.clipboard?.writeText(buildScript()).then(()=>toast('클립보드에 복사되었습니다 ✓')); };
+
+document.getElementById('urlInput').addEventListener('keydown',e=>{ if(e.key==='Enter') window.addItem(); });
+document.getElementById('nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('urlInput').focus(); });
+
+/* ══════════════════════════════
+   MEMO
+══════════════════════════════ */
+let memos=[], currentMemoId=null, memoSaveTimer=null, unsubMemos=null;
+
+function renderMemoList(){
+  const el=document.getElementById('memoList');
+  if(!memos.length){ el.innerHTML='<div class="empty-msg" style="padding:16px 4px;font-size:12px">메모가 없어요</div>'; return; }
+  el.innerHTML=memos.slice().sort((a,b)=>(b.updatedAt?.seconds||0)-(a.updatedAt?.seconds||0))
+    .map(m=>`<div class="memo-item${m._id===currentMemoId?' selected':''}" data-id="${m._id}">
+      <div class="m-title">${escHtml(m.title)||'제목 없음'}</div>
+      <div class="m-preview">${escHtml((m.body||'').split('\n')[0])||'내용 없음'}</div>
+      <div class="m-date">${fmtDate(m.updatedAt)}</div>
+    </div>`).join('');
+  el.querySelectorAll('.memo-item').forEach(el=>{
+    el.addEventListener('click',()=>openMemo(el.dataset.id));
+  });
+}
+
+function openMemo(id){
+  currentMemoId=id;
+  const m=memos.find(x=>x._id===id); if(!m) return;
+  document.getElementById('memoEditor').style.display='flex';
+  document.getElementById('memoEmpty').style.display='none';
+  document.getElementById('memoTitle').value=m.title||'';
+  document.getElementById('memoBody').value=m.body||'';
+  document.getElementById('memoStatus').textContent='';
+  renderMemoList();
+}
+
+window.newMemo=async function(){
+  try{
+    const ref=await addDoc(collection(db,'memos'),{title:'',body:'',createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    currentMemoId=ref.id;
+    toast('새 메모 생성됨');
+  }catch(e){ toast('생성 실패: '+e.message); }
+};
+
+window.deleteMemo=async function(){
+  if(!currentMemoId) return;
+  try{
+    await deleteDoc(doc(db,'memos',currentMemoId));
+    currentMemoId=null;
+    document.getElementById('memoEditor').style.display='none';
+    document.getElementById('memoEmpty').style.display='flex';
+    toast('삭제되었습니다.');
+  }catch(e){ toast('삭제 실패: '+e.message); }
+};
+
+function onMemoChange(){
+  if(!currentMemoId) return;
+  const status=document.getElementById('memoStatus');
+  status.textContent='저장 중...';
+  clearTimeout(memoSaveTimer);
+  memoSaveTimer=setTimeout(async()=>{
+    const title=document.getElementById('memoTitle').value;
+    const body =document.getElementById('memoBody').value;
+    try{
+      await updateDoc(doc(db,'memos',currentMemoId),{title,body,updatedAt:serverTimestamp()});
+      status.textContent='저장됨 ✓';
+      setTimeout(()=>{ status.textContent=''; },1800);
+    }catch(e){ status.textContent='저장 실패'; }
+  },600);
+}
+
+function subscribeMemos(){
+  if(unsubMemos) unsubMemos();
+  unsubMemos=onSnapshot(collection(db,'memos'),snap=>{
+    memos=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    renderMemoList();
+    if(currentMemoId){
+      const m=memos.find(x=>x._id===currentMemoId);
+      if(!m){ currentMemoId=null; document.getElementById('memoEditor').style.display='none'; document.getElementById('memoEmpty').style.display='flex'; }
+    } else if(memos.length===1 && !currentMemoId){
+      openMemo(memos[0]._id);
+    }
+  },err=>console.error(err));
+}
+
+document.getElementById('memoTitle').addEventListener('input',onMemoChange);
+document.getElementById('memoBody' ).addEventListener('input',onMemoChange);
+
+/* ══════════════════════════════
+   LOGIN SYSTEM
+══════════════════════════════ */
+function checkPassword(){
+  const pw = document.getElementById('pwInput').value.trim();
+  const correctPw = '1234';
+  const errorEl = document.getElementById('lockError');
+  
+  if(!pw){
+    errorEl.textContent = '비밀번호를 입력하세요.';
+    return;
+  }
+  
+  if(pw === correctPw){
+    localStorage.setItem('app_locked','false');
+    unlockScreen();
+    toast('입장했습니다 ✓');
+  } else {
+    errorEl.textContent = '❌ 비밀번호가 틀렸습니다.';
+    document.getElementById('pwInput').value='';
+  }
+}
+
+function removeLock(){
+  if(confirm('비밀번호 보호를 해제하시겠습니까?')){
+    localStorage.setItem('app_locked','false');
+    unlockScreen();
+    toast('보호가 해제되었습니다.');
+  }
+}
+
+function unlockScreen(){
+  document.getElementById('lockScreen').style.display='none';
+  initApp();
+}
+
+function checkLockStatus(){
+  if(localStorage.getItem('app_locked') === 'false'){
+    unlockScreen();
+  }
+}
+
+// 엔터 키로 로그인
+document.getElementById('pwInput')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter') checkPassword();
+});
+
+/* ── INIT ── */
+function initApp(){
+  subscribeItems();
+  subscribeMemos();
+}
+
+// 페이지 로드 시 로그인 상태 확인
+window.addEventListener('load',checkLockStatus);
+</script>
+</body>
+</html>
